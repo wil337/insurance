@@ -2,7 +2,9 @@
 
 # TODO: load your packages here.
 # Don't forget to list all packages you use to the `install.R` file.
-
+library("tidyverse")
+library("h2o")
+h2o.init()
 
 # (optional) data pre-processing function.
 preprocess_X_data <- function (x_raw){
@@ -134,13 +136,13 @@ save_model <- function(model, output_path){
 }
 
 
-load_model <- function(model_path){ 
+load_model <- function(){ 
  # Load a saved trained model from the file `trained_model.RData`.
 
  #    This is called by the server to evaluate your submission on hidden data.
  #    Only modify this *if* you modified save_model.
 
 #  load('trained_model.RData')
-  model = h2o.loadModel(model_path)
+  model = h2o.loadModel("model/GLM_model_R_1611661053916_2")
   return(model)
 }

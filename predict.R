@@ -1,7 +1,6 @@
 # This script is used to predict prices from your model.
 # 
 # DO NOT MODIFY.
-library(tidyverse)
 source("model.R")  # Load your code.
 
 
@@ -33,9 +32,7 @@ if('claim_amount' %in% colnames(Xraw)){
 
 
 # Load the saved model, and run it.
-library(h2o)
-h2o.init()
-trained_model = load_model("model/GLM_model_R_1611661053916_2")
+trained_model = load_model()
 
 if(Sys.getenv('WEEKLY_EVALUATION', 'false') == 'true') {
   prices = predict_premium(trained_model, Xraw)
