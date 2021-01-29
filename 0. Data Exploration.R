@@ -1,9 +1,10 @@
 library(skimr)
 library(plotly)
-data <- read_csv(input_dataset)
+data <- read.csv(input_dataset) %>% as_tibble()
 data2 = data %>% 
   mutate(year = as.factor(year))
-skim(data)
+         pol_duration = as.factor(pol_duration))
+skim(data2$vh_make_model)
 oneWays <- function(data, fac, cuts = 10L, jenks_flag = FALSE){
     #x axis
     ax <- list(title = fac)
@@ -77,3 +78,21 @@ oneWays <- function(data, fac, cuts = 10L, jenks_flag = FALSE){
              yaxis2 = ay)
   }
 oneWays(data2, "pol_coverage")
+oneWays(data2, "pol_duration")
+oneWays(data2, "pol_sit_duration")
+oneWays(data2, "pol_pay_freq")
+oneWays(data2, "pol_usage")
+oneWays(data2, "drv_sex1")
+oneWays(data2, "drv_age1", 99)
+oneWays(data2, "pol_no_claims_discount")
+
+oneWays(data2, "pol_payd")
+oneWays(data2, names(data2)[26])
+plot_ly() %>% 
+add_trace(data = data2, 
+          x=~pol_duration,
+          #quo adds a quosure to be in the right format for plotly to read ~variable
+          y= ~pol_sit_duration,
+          yaxis = "y2",
+          type = "scatter",
+          mode = "marker")
