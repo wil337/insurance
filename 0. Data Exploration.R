@@ -1,9 +1,20 @@
 library(skimr)
 library(plotly)
+library(tidyverse)
 data <- read.csv(input_dataset) %>% as_tibble()
 data2 = data %>% 
-  mutate(year = as.factor(year))
-         pol_duration = as.factor(pol_duration))
+  mutate(year = as.factor(year), 
+         pol_duration = as.factor(pol_duration)) %>% 
+  select(-id_policy, -pol_sit_duration) %>% 
+  mutate(rat_driv = ifelse(drv_age2 %>% is.na(),drv_age1,pmin(drv_age1, drv_age2))) %>% 
+  mutate(rat_lic = ifelse(drv_age_lic2 %>% is.na(),drv_age1,pmin(drv_age_lic1, drv_age_lic2))) %>% 
+    mutate(rat_sex = ifelse(drv_age2 %>% is.na(), as.character(drv_sex1),
+                           ifelse(drv_age2 < drv_age1, as.character(drv_sex2), as.character(drv_sex1))) %>% 
+           as.factor()) %>% 
+  select(-drv_age1, -drv_age2, -drv_sex1, -drv_sex2, -drv_drv2,
+         -drv_age_lic1, -drv_age_lic2) 
+  
+
 skim(data2$vh_make_model)
 oneWays <- function(data, fac, cuts = 10L, jenks_flag = FALSE){
     #x axis
