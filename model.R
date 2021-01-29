@@ -20,7 +20,9 @@ preprocess_X_data <- function (x_raw){
   # A cleaned / preprocessed version of the dataset
 
   # YOUR CODE HERE ------------------------------------------------------
-  
+  x_processed <- x_raw %>% 
+    select(-id_policy) %>% 
+    mutate(durn = paste0(as.character(pol_duration), as.character(pol_sit_duration)))
   
   # ---------------------------------------------------------------------
   # The result trained_model is something that you will save in the next section
@@ -54,7 +56,6 @@ fit_model <- function (x_raw, y_raw){
   
   # YOUR CODE HERE ------------------------------------------------------
   #fit_lm = lm(unlist(ydata) ~ 1) # toy linear model
-  h2o.init()
   y_raw <- as.h2o(y_raw)
   x_clean = preprocess_X_data(x_raw)
   train <- h2o.cbind(x_clean, y_raw)
@@ -62,6 +63,7 @@ fit_model <- function (x_raw, y_raw){
   y = names(y_raw)
   glm = h2o.glm(x, y, train, 
                 seed = 1)
+  rf = h2o.randomForest(x, y, train, seed = 1)
   trained_model = glm
   # ---------------------------------------------------------------------
   # The result trained_model is something that you will save in the next section
