@@ -1,7 +1,10 @@
 library(skimr)
 library(plotly)
 library(tidyverse)
+#input data
 data <- read.csv(input_dataset) %>% as_tibble()
+
+#preprocess columns
 data2 = data %>% 
   mutate(year = as.factor(year), 
          pol_duration = as.factor(pol_duration)) %>% 
@@ -13,7 +16,36 @@ data2 = data %>%
            as.factor()) %>% 
   select(-drv_age1, -drv_age2, -drv_sex1, -drv_sex2, -drv_drv2,
          -drv_age_lic1, -drv_age_lic2) 
-  
+#pca on location variables (alternatively get a density pop / area)
+pca <- data2 %>% 
+  as.h2o() %>% 
+  h2o.prcomp(training_frame = ., 
+             x=c("population", "town_surface_area"),
+             transform = "STANDARDIZE",
+             seed = 1)
+loc <- h2o.predict(pca, newdata=data2 %>% as.h2o()) %>% 
+  as_tibble() %>% 
+  rename(loc=PC1)
+data3 <- bind_cols(data2, loc) %>% 
+  select(-population, -town_surface_area)
+
+# dimension reduction vehicle into 1 column
+vh = data3 %>% 
+  select(starts_with("vh")) %>% 
+  names()
+glrm <- data3 %>% 
+  select(starts_with("vh")) %>% 
+  as.h2o() %>% 
+  h2o.glrm(training_frame = ., 
+             transform = "STANDARDIZE",
+             seed = 1,
+           k=1)
+veh <- h2o.predict(glrm, newdata=data3 %>% 
+                     select(starts_with("vh")) %>% 
+                     as.h2o()) %>% 
+  as_tibble() %>% 
+  rename(loc=PC1)
+
 
 skim(data2$vh_make_model)
 oneWays <- function(data, fac, cuts = 10L, jenks_flag = FALSE){
