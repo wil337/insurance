@@ -21,8 +21,7 @@ preprocess_X_data <- function (x_raw){
 
   # YOUR CODE HERE ------------------------------------------------------
   x_processed <- x_raw %>% 
-    select(-id_policy) %>% 
-    mutate(durn = paste0(as.character(pol_duration), as.character(pol_sit_duration)))
+    select(-id_policy, -pol_sit_duration)
   
   # ---------------------------------------------------------------------
   # The result trained_model is something that you will save in the next section
