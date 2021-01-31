@@ -1,8 +1,12 @@
 library(skimr)
 library(plotly)
 library(tidyverse)
+library(h2o)
+library(rsample)
+
+h2o.init()
 #input data
-data <- read.csv(input_dataset) %>% as_tibble()
+data <- read.csv("training.csv") %>% as_tibble()
 
 #preprocess columns
 data2 = data %>% 
@@ -15,19 +19,39 @@ data2 = data %>%
                            ifelse(drv_age2 < drv_age1, as.character(drv_sex2), as.character(drv_sex1))) %>% 
            as.factor()) %>% 
   select(-drv_age1, -drv_age2, -drv_sex1, -drv_sex2, -drv_drv2,
-         -drv_age_lic1, -drv_age_lic2) 
+         -drv_age_lic1, -drv_age_lic2) %>% 
+  mutate(dens = population / town_surface_area)
 #pca on location variables (alternatively get a density pop / area)
 pca <- data2 %>% 
   as.h2o() %>% 
   h2o.prcomp(training_frame = ., 
-             x=c("population", "town_surface_area"),
+             x=c("population", "town_surface_area", "dens"),
              transform = "STANDARDIZE",
-             seed = 1)
+             seed = 1,
+             k = 2)
 loc <- h2o.predict(pca, newdata=data2 %>% as.h2o()) %>% 
   as_tibble() %>% 
-  rename(loc=PC1)
+  rename(loc1=PC1, loc2=PC2)
 data3 <- bind_cols(data2, loc) %>% 
-  select(-population, -town_surface_area)
+  select(-population, -town_surface_area, -dens)
+
+#stratified sample by year and pol coverage
+data4 = data3 %>% 
+  group_by(year, pol_duration) %>% 
+  summarise(rand = floor(r(1)*4))
+table(data4$year)
+h2odata = data3 %>% as.h2o() %>% h2o.splitFrame(ratios = 0.8, 
+                                                seed = 1,
+                                                )
+features = data3 %>% select(-claim_amount) %>% names()
+glm = h2o.glm(x=features,
+        y = "claim_amount",
+        seed = 1,
+        training_frame = h2odata[[1]],
+        interaction_pairs = list(c("rat_driv", "rat_sex")),
+        nfolds = 5)
+glm
+
 
 # dimension reduction vehicle into 1 column
 vh = data3 %>% 
@@ -39,7 +63,7 @@ glrm <- data3 %>%
   h2o.glrm(training_frame = ., 
              transform = "STANDARDIZE",
              seed = 1,
-           k=1)
+           k=7)
 veh <- h2o.predict(glrm, newdata=data3 %>% 
                      select(starts_with("vh")) %>% 
                      as.h2o()) %>% 
