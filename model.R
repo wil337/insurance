@@ -2,9 +2,49 @@
 
 # TODO: load your packages here.
 # Don't forget to list all packages you use to the `install.R` file.
+devtools::install_github("stevenpawley/h2oparsnip")
+
 library("tidyverse")
 library("h2o")
+library("parsnip")
+library("recipes")
+library("workflows")
+library("rsample")
+library("h2oparsnip")
 h2o.init()
+
+#split data into training and test set
+data <- read.csv("training.csv") %>% as_tibble()
+set.seed(1)
+splits = initial_split(data , prop = 0.8)
+train_data = training(splits)
+test_data = testing(splits)
+
+#check splits proportion similar for key varibles
+train_data %>% 
+  group_by(year) %>% 
+  summarise(n = n(),
+            propn = n / dim(train_data)[[1]])
+train_data %>% 
+  group_by(pol_coverage) %>% 
+  summarise(nrows = n(),
+            propn = nrows / dim(train_data)[[1]])
+test_data %>% 
+  group_by(year) %>% 
+  summarise(n = n(),
+            propn = n / dim(test_data)[[1]])
+test_data %>% 
+  group_by(pol_coverage) %>% 
+  summarise(n = n(),
+            propn = n / dim(test_data)[[1]])
+
+glm <- linear_reg() %>% 
+  set_engine("h2o")
+
+rec <- recipe(data) %>% 
+    add_role(data, id_policy, new_role = "car")
+
+summary(rec)
 
 # (optional) data pre-processing function.
 preprocess_X_data <- function (x_raw){
@@ -21,7 +61,8 @@ preprocess_X_data <- function (x_raw){
 
   # YOUR CODE HERE ------------------------------------------------------
   x_processed <- x_raw %>% 
-    select(-id_policy, -pol_sit_duration)
+    select(-id_policy, -pol_sit_duration) %>% 
+    mutate(rat_driv = min(drv_age1, drv_age2) )
   
   # ---------------------------------------------------------------------
   # The result trained_model is something that you will save in the next section
