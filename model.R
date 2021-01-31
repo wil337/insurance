@@ -11,6 +11,7 @@ library("recipes")
 library("workflows")
 library("rsample")
 library("h2oparsnip")
+library("tidymodels")
 h2o.init()
 
 #split data into training and test set
@@ -41,10 +42,10 @@ test_data %>%
 glm <- linear_reg() %>% 
   set_engine("h2o")
 
-rec <- recipe(data) %>% 
-    add_role(data, id_policy, new_role = "car")
+rec <- recipe(data, formula = claim_amount ~ .) %>% 
+  update_role(id_policy, new_role = "id")
 
-summary(rec)
+roles <- summary(rec)
 
 # (optional) data pre-processing function.
 preprocess_X_data <- function (x_raw){
