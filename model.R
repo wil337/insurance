@@ -43,10 +43,26 @@ glm <- linear_reg() %>%
   set_engine("h2o")
 
 rec <- recipe(data, formula = claim_amount ~ .) %>% 
-  update_role(id_policy, new_role = "id")
+  update_role(id_policy, new_role = "id") %>% 
+  update_role(starts_with("vh"), new_role = "car") %>% 
+  update_role(population, town_surface_area, new_role = "geo") %>% 
+  step_mutate(year = as.factor(year),
+              pol_duration = as.factor(pol_duration)) %>% 
+  step_rm(id_policy, pol_sit_duration) %>% 
+  step_mutate(rat_driv = ifelse(drv_age2 %>% is.na(),drv_age1,pmin(drv_age1, drv_age2))) %>%  
+  step_mutate(rat_lic = ifelse(drv_age_lic2 %>% is.na(),drv_age1,pmin(drv_age_lic1, drv_age_lic2))) %>% 
+  step_mutate(rat_sex = ifelse(drv_age2 %>% is.na(), as.character(drv_sex1),
+                          ifelse(drv_age2 < drv_age1, as.character(drv_sex2), as.character(drv_sex1))) %>% 
+           as.factor()) %>% 
+  step_rm(drv_age1, drv_age2, drv_sex1, drv_sex2, drv_drv2,
+         drv_age_lic1, drv_age_lic2) %>% 
+  step_mutate(dens = population / town_surface_area, role = "geo") %>% 
+  step_center(has_role("geo")) %>% 
+  step_scale(has_role("geo")) %>% 
+  step_pca(has_role("geo"), num_comp = 3)
 
 roles <- summary(rec)
-
+rec
 # (optional) data pre-processing function.
 preprocess_X_data <- function (x_raw){
   # Data preprocessing function: given X_raw, clean the data for training or prediction.
