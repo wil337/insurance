@@ -3,7 +3,6 @@
 # DO NOT MODIFY.
 source("model.R")  # Load your code.
 
-
 # This script expects sys.args arguments for (1) the dataset and (2) the output file.
 output_dir = Sys.getenv('OUTPUTS_DIR', '.')
 input_dataset = Sys.getenv('DATASET_PATH', 'training.csv')  # The default value.
