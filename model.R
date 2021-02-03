@@ -15,9 +15,13 @@ library("tidymodels")
 h2o.init()
 
 #split data into training and test set
-data <- read.csv("training.csv") %>% as_tibble()
+data <- read.csv("training.csv") %>% 
+  as_tibble() %>% 
+  mutate(stage = minp(year))
+
 set.seed(1)
-splits = initial_split(data , prop = 0.8)
+splits = initial_split(data , prop = 0.8, strata="claim_amount")
+#initial_time_split(data, prop=0.8, lag=1)
 train_data = training(splits)
 test_data = testing(splits)
 
@@ -59,10 +63,21 @@ rec <- recipe(data, formula = claim_amount ~ .) %>%
   step_mutate(dens = population / town_surface_area, role = "geo") %>% 
   step_center(has_role("geo")) %>% 
   step_scale(has_role("geo")) %>% 
-  step_pca(has_role("geo"), num_comp = 3)
+  step_pca(has_role("geo"), num_comp = 1)
 
 roles <- summary(rec)
 rec
+wflow <- workflow() %>% 
+  add_model(glm) %>% 
+  add_recipe(rec)
+dataprep <- prep(rec) %>% bake(data)
+
+fit <- wflow %>% fit(data)
+fit
+
+fit %>% 
+  pull_workflow_fit() %>% 
+  tidy()
 # (optional) data pre-processing function.
 preprocess_X_data <- function (x_raw){
   # Data preprocessing function: given X_raw, clean the data for training or prediction.
