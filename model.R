@@ -16,11 +16,11 @@ h2o.init()
 
 #split data into training and test set
 data <- read.csv("training.csv") %>% 
-  as_tibble() %>% 
-  mutate(stage = minp(year))
+  as_tibble()
 
 set.seed(1)
 splits = initial_split(data , prop = 0.8, strata="claim_amount")
+
 #initial_time_split(data, prop=0.8, lag=1)
 train_data = training(splits)
 test_data = testing(splits)
@@ -44,9 +44,14 @@ test_data %>%
             propn = n / dim(test_data)[[1]])
 
 glm <- linear_reg() %>% 
-  set_engine("h2o")
-
-rec <- recipe(data, formula = claim_amount ~ .) %>% 
+  set_engine("h2o", 
+             #family="poisson",
+             nfolds=5,
+             seed=1)
+rf <- rand_forest() %>% 
+  set_engine("ranger",
+             seed=1)
+rec <- recipe(train_data, formula = claim_amount ~ .) %>% 
   update_role(id_policy, new_role = "id") %>% 
   update_role(starts_with("vh"), new_role = "car") %>% 
   update_role(population, town_surface_area, new_role = "geo") %>% 
@@ -67,17 +72,43 @@ rec <- recipe(data, formula = claim_amount ~ .) %>%
 
 roles <- summary(rec)
 rec
-wflow <- workflow() %>% 
+wflow_glm <- workflow() %>% 
   add_model(glm) %>% 
   add_recipe(rec)
-dataprep <- prep(rec) %>% bake(data)
 
-fit <- wflow %>% fit(data)
-fit
+wflow_rf <- workflow() %>% 
+  add_model(rf) %>% 
+  add_recipe(rec)
+dataprep <- prep(rec) %>% bake(train_data)
 
-fit %>% 
-  pull_workflow_fit() %>% 
-  tidy()
+fit_glm <- wflow_glm %>% fit(train_data)
+fit_rf = wflow_rf %>% fit(train_data)
+
+fitdata = fit_rf %>% 
+  pull_workflow_fit() # %>% tidy()
+fitdata$fit@model_id
+fitdata$fit@parameters
+h2o.performance(fitdata$fit, xval=TRUE)
+h2o.rmse(fitdata$fit, train=TRUE, xval=TRUE)
+
+set.seed(345)
+#folds <- vfold_cv(train_data, v = 10)
+#folds
+fold1 = initial_split(train_data %>% filter(year<=1), prop=0.8)
+fold2 = initial_split(train_data %>% filter(year<=2), prop=0.8)
+fold3 = initial_split(train_data %>% filter(year<=3), prop=0.8)
+fold4 = initial_split(train_data %>% filter(year<=4), prop=0.8)
+
+splits = list(fold1, fold2, fold3, fold4)
+folds = manual_rset(splits, c("fold1", "fold2", "fold3", "fold4"))
+folds
+rf_fit_rs <- wflow_rf %>% 
+  fit_resamples(folds)
+collect_metrics(rf_fit_rs)
+xval = rf_fit_rs %>% 
+  unnest(cols=.metrics) %>% 
+  filter(.metric=="rmse")
+
 # (optional) data pre-processing function.
 preprocess_X_data <- function (x_raw){
   # Data preprocessing function: given X_raw, clean the data for training or prediction.
