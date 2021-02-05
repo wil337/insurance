@@ -152,9 +152,9 @@ splits <- lapply(indices, make_splits, train_data)
 folds = manual_rset(splits, c("fold1", "fold2", "fold3", "fold4"))
 folds
 #folds = vfold_cv(train_data, v=5)
-rf_fit_rs <- wflow_rf %>% 
+rf_fit_glm <- wflow_glm %>% 
   fit_resamples(folds)
-collect_metrics(rf_fit_rs)
+collect_metrics(rf_fit_glm)
 xval = rf_fit_rs %>% 
   unnest(cols=.metrics) %>% 
   filter(.metric=="rmse")
