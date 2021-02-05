@@ -149,88 +149,11 @@ indices <- list(
   list(analysis = c(analysis4, year1, year2, year3), assessment = assess4)
 )
 splits <- lapply(indices, make_splits, train_data)
-manual_rset(splits, c("fold1", "fold2", "fold3", "fold4"))
-
-
-train_data %>% slice(analysis3)
-  mutate(rand = map_dbl(.f=runif, .x=1),
-         analysis1 = ifelse(rand < 0.8 && year == 1, 1, 0),
-         assess1 = ifelse(rand >= 0.8 && year == 1, 1, 0),
-         analysis2 = ifelse(year == 1 || year == 2 && rand < 0.5, 1, 0),
-         assess2 = ifelse(year == 2 && rand >=0.5, 1, 0), 
-         analysis3 = ifelse(year <= 2 || year == 3 && rand < 0.5, 1, 0),
-         assess3 = ifelse(year == 3 || rand >= 0.5, 1, 0),
-         analysis4 = ifelse(year <= 3 && year == 4 && rand < 0.5, 1, 0),
-         assess4 = ifelse(year == 4 && rand >= 0.5, 1, 0)) 
-picksamples %>% filter(year == 1) %>% 
-  ggplot(aes(x=rand)) + geom_histogram()
-analysis1 = picksamples %>% 
-  filter(analysis1 == 1) %>% 
-  pull(ID)
-
-assess1 = picksamples %>% 
-  filter(assess1 == 1) %>% 
-  pull(ID)
-
-
-
-
-
-
-
-
-%>% 
-  ungroup() %>% 
-  summarise(analysis1 = sum(analysis1)/pull(count(data)),
-            assess1 = sum(assess1)/pull(count(data)),
-            analysis2 = sum(analysis2)/pull(count(data)),
-            assess2 = sum(assess2)/pull(count(data)),
-            analysis3 = sum(analysis3)/pull(count(data)),
-            assess3 = sum(assess3)/pull(count(data)),
-            analysis4 = sum(analysis4)/pull(count(data)),
-            assess4 = sum(assess4)/pull(count(data))) %>% 
-  mutate(train1 = assess1 / sum(analysis1, assess1))
-train_data %>% 
-  count(year) %>% 
-  mutate(cum = cumsum(as.numeric(n))) %>% 
-  mutate(indices = list(1:10)) %>% 
-  unnest(.cols=indices)
-analysis1 = train_data %>% filter(year<=1)
-assess1 = train_data %>% filter(year==1)
-
-analysis2 = train_data %>% filter(year<=2)
-assess2 = train_data %>% filter(year==2)
-
-analysis3 = train_data %>% filter(year<=3)
-assess3 = train_data %>% filter(year==3)
-
-analysis4 = train_data %>% filter(year<=4)
-assess4 = train_data %>% filter(year==4)
-timefolds = tibble(splits = list(c(analysis1, assess1), 
-                     c(analysis2, assess2),
-                     c(analysis3, assess3),
-                     c(analysis4, assess4)),
-       id = c("fold1", "fold2", "fold3", "fold4"))
-#manual create  timefolds rsample rset object
-indices <- list(
-  list(analysis = 1:dim(analysis1)[1], assessment = dim(analysis1)[1]+1:dim(assess1)[1]),
-  list(analysis = 1:dim(analysis2)[1], assessment = dim(analysis2)[1]+1:dim(assess2)[1]),
-  list(analysis = 1:dim(analysis3)[1], assessment = dim(analysis3)[1]+1:dim(assess3)[1]),
-  list(analysis = 1:dim(analysis4)[1], assessment = dim(analysis4)[1]+1:dim(assess4)[1])
-)
-splits <- lapply(indices, make_splits, bind_rows(analysis1, assess1, analysis2, assess2, analysis3, assess3, analysis4, assess4))
-manual_rset(splits, c("fold1", "fold2", "fold3", "fold4"))
-folds
-fold1 = initial_split(train_data %>% filter(year<=1), prop=0.8)
-fold2 = initial_split(train_data %>% filter(year<=2), prop=0.8)
-fold3 = initial_split(train_data %>% filter(year<=3), prop=0.8)
-fold4 = initial_split(train_data %>% filter(year<=4), prop=0.8)
-testing(fold1)
-splits = list(fold1, fold2, fold3, fold4)
 folds = manual_rset(splits, c("fold1", "fold2", "fold3", "fold4"))
 folds
+#folds = vfold_cv(train_data, v=5)
 rf_fit_rs <- wflow_rf %>% 
-  fit_resamples(timefolds)
+  fit_resamples(folds)
 collect_metrics(rf_fit_rs)
 xval = rf_fit_rs %>% 
   unnest(cols=.metrics) %>% 
