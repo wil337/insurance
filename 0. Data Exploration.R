@@ -4,9 +4,17 @@ library(tidyverse)
 library(h2o)
 library(rsample)
 
+
 h2o.init()
 #input data
 data <- read.csv("training.csv") %>% as_tibble()
+
+data %>% 
+  #filter(claim_amount <= 5000) %>% 
+  mutate(ID=row_number()) %>% 
+  ggplot(aes(y=claim_amount)) +
+  geom_point(aes(x=ID))
+  
 
 #preprocess columns
 data2 = data %>% 
